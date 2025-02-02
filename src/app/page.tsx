@@ -5,6 +5,7 @@ import { client, contract } from "./client";
 import { useActiveAccount, useReadContract } from "thirdweb/react";
 import ProfileForm from "@/components/ProfileForm";
 import ProfileView from "@/components/ProfileView";
+import { redirect } from "next/navigation";
 
 export default function Home() {
   const account = useActiveAccount();
@@ -33,10 +34,7 @@ export default function Home() {
 
         {account ? (
           profile?.[6] ? (
-            <div className="space-y-6">
-              <ProfileView />
-              <Feed />
-            </div>
+            <Feed />
           ) : (
             <ProfileForm />
           )

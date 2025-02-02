@@ -18,17 +18,21 @@ interface Profile {
   avatar?: string;
 }
 
-export default function ProfileView() {
+interface ProfileViewProps {
+  address?: string;
+}
+
+export default function ProfileView({ address }: ProfileViewProps) {
   const account = useActiveAccount();
   const [isEditing, setIsEditing] = useState(false);
 
   const { data: profile, isLoading } = useReadContract({
     contract,
     method: "function profiles(address) view returns (string handle, string name, string bio, string avatar, uint256 followerCount, uint256 followingCount, bool exists)",
-    params: [account?.address ?? ""]
+    params: [address || account?.address || ""]
   });
 
-  if (!account) return null;
+  if (!address && !account) return null;
   if (isLoading) return <div>Loading profile...</div>;
   if (!profile?.[6]) return <div>No profile found</div>;
 
