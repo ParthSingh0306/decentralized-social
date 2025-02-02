@@ -1,100 +1,107 @@
 "use client";
 
-import Image from "next/image";
 import { ConnectButton } from "thirdweb/react";
-import thirdwebIcon from "@public/thirdweb.svg";
-import { client } from "./client";
+import { client, contract } from "./client";
+import { useActiveAccount, useReadContract } from "thirdweb/react";
+import ProfileForm from "@/components/ProfileForm";
+import ProfileView from "@/components/ProfileView";
 
 export default function Home() {
-  return (
-    <main className="p-4 pb-10 min-h-[100vh] flex items-center justify-center container max-w-screen-lg mx-auto">
-      <div className="py-20">
-        <Header />
+  const account = useActiveAccount();
+  
+  const { data: profile } = useReadContract({
+    contract,
+    method: "function profiles(address) view returns (string handle, string name, string bio, string avatar, uint256 followerCount, uint256 followingCount, bool exists)",
+    params: [account?.address ?? ""]
+  });
 
-        <div className="flex justify-center mb-20">
+  console.log(profile);
+
+  return (
+    <main className="min-h-screen bg-zinc-950">
+      <div className="max-w-2xl mx-auto p-4">
+        <header className="flex justify-between items-center mb-8 border-b border-zinc-800 pb-4">
+          <h1 className="text-2xl font-bold text-zinc-100">Decentralized Social</h1>
           <ConnectButton
             client={client}
             appMetadata={{
-              name: "Example App",
-              url: "https://example.com",
+              name: "Decentralized Social",
+              url: typeof window !== "undefined" ? window.location.origin : "",
             }}
           />
-        </div>
+        </header>
 
-        <ThirdwebResources />
+        {account ? (
+          profile?.[6] ? (
+            <div className="space-y-6">
+              <ProfileView />
+              <Feed />
+            </div>
+          ) : (
+            <ProfileForm />
+          )
+        ) : (
+          <div className="text-center py-20">
+            <p className="text-zinc-400 mb-4">Connect your wallet to view the decentralized social feed</p>
+          </div>
+        )}
       </div>
     </main>
   );
 }
 
-function Header() {
+function Feed() {
+  const posts = [
+    {
+      id: 1,
+      content: "Just posted my first decentralized social media update! 🚀",
+      author: "0x123...abc",
+      likes: 42,
+      timestamp: "2h ago"
+    },
+    {
+      id: 2,
+      content: "Decentralized social media is the future! 💡",
+      author: "0x456...def",
+      likes: 28,
+      timestamp: "4h ago"
+    }
+  ];
+
   return (
-    <header className="flex flex-col items-center mb-20 md:mb-20">
-      <Image
-        src={thirdwebIcon}
-        alt=""
-        className="size-[150px] md:size-[150px]"
-        style={{
-          filter: "drop-shadow(0px 0px 24px #a726a9a8)",
-        }}
-      />
+    <div className="space-y-6">
+      {/* Create Post Input */}
+      <div className="bg-zinc-900 rounded-lg p-4 border border-zinc-800">
+        <textarea
+          placeholder="What's on your mind?"
+          className="w-full bg-transparent text-zinc-100 placeholder-zinc-500 resize-none focus:outline-none"
+          rows={3}
+        />
+        <div className="flex justify-end mt-4">
+          <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+            Post
+          </button>
+        </div>
+      </div>
 
-      <h1 className="text-2xl md:text-6xl font-semibold md:font-bold tracking-tighter mb-6 text-zinc-100">
-        thirdweb SDK
-        <span className="text-zinc-300 inline-block mx-1"> + </span>
-        <span className="inline-block -skew-x-6 text-blue-500"> Next.js </span>
-      </h1>
-
-      <p className="text-zinc-300 text-base">
-        Read the{" "}
-        <code className="bg-zinc-800 text-zinc-300 px-2 rounded py-1 text-sm mx-1">
-          README.md
-        </code>{" "}
-        file to get started.
-      </p>
-    </header>
-  );
-}
-
-function ThirdwebResources() {
-  return (
-    <div className="grid gap-4 lg:grid-cols-3 justify-center">
-      <ArticleCard
-        title="thirdweb SDK Docs"
-        href="https://portal.thirdweb.com/typescript/v5"
-        description="thirdweb TypeScript SDK documentation"
-      />
-
-      <ArticleCard
-        title="Components and Hooks"
-        href="https://portal.thirdweb.com/typescript/v5/react"
-        description="Learn about the thirdweb React components and hooks in thirdweb SDK"
-      />
-
-      <ArticleCard
-        title="thirdweb Dashboard"
-        href="https://thirdweb.com/dashboard"
-        description="Deploy, configure, and manage your smart contracts from the dashboard."
-      />
+      {/* Posts List */}
+      {posts.map(post => (
+        <div key={post.id} className="bg-zinc-900 rounded-lg p-4 border border-zinc-800">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="size-10 rounded-full bg-zinc-800" />
+            <div>
+              <p className="font-medium text-zinc-100">{post.author}</p>
+              <p className="text-sm text-zinc-500">{post.timestamp}</p>
+            </div>
+          </div>
+          <p className="text-zinc-100 mb-4">{post.content}</p>
+          <div className="flex gap-6 text-zinc-500">
+            <button className="hover:text-blue-500 transition-colors">Like ({post.likes})</button>
+            <button className="hover:text-green-500 transition-colors">Comment</button>
+            <button className="hover:text-red-500 transition-colors">Share</button>
+          </div>
+        </div>
+      ))}
     </div>
-  );
-}
-
-function ArticleCard(props: {
-  title: string;
-  href: string;
-  description: string;
-}) {
-  return (
-    <a
-      href={props.href + "?utm_source=next-template"}
-      target="_blank"
-      className="flex flex-col border border-zinc-800 p-4 rounded-lg hover:bg-zinc-900 transition-colors hover:border-zinc-700"
-    >
-      <article>
-        <h2 className="text-lg font-semibold mb-2">{props.title}</h2>
-        <p className="text-sm text-zinc-400">{props.description}</p>
-      </article>
-    </a>
   );
 }
