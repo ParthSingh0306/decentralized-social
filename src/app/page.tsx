@@ -47,22 +47,30 @@ export default function Home() {
 }
 
 function Feed() {
-  const num =1;
-  const { data: allPosts, isLoading } = useReadContract({
+  const { data: allPosts } = useReadContract({
     contract,
-    method: "function posts(uint256) view returns (tuple(address owner, string content, string imageHash, uint256 timestamp, uint256 likesCount, bool exists)[])",
-    params: [ num || "" ],
+    method:
+      "function getAllPosts() view returns ((address owner, string content, string imageHash, uint256 timestamp, uint256 likesCount, bool exists)[])",
+    params: [],
   });
-
-  console.log(allPosts)
 
   return (
     <div className="space-y-6">
       <PostForm />
       {allPosts
-        ?.filter(post => post.exists)
+        ?.filter(post => post.exists) // Filter out deleted posts
         ?.map((post, index) => (
-          <PostItem key={index} post={post} />
+          <PostItem 
+            key={index}
+            post={{
+              owner: post.owner,
+              content: post.content,
+              imageHash: post.imageHash,
+              timestamp: post.timestamp,
+              likesCount: post.likesCount,
+              exists: post.exists
+            }}
+          />
         ))}
     </div>
   );

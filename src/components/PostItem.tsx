@@ -8,13 +8,16 @@ export default function PostItem({ post }: any) {
   const { data: profile } = useReadContract({
     contract,
     method: "function profiles(address) view returns (string handle, string name, string bio, string avatar, uint256 followerCount, uint256 followingCount, bool exists)",
-    params: [post.author]
+    params: [post.owner]
   });
 
   console.log(profile)
 
   const [content, setContent] = useState(post.content);
   const [imageUrl, setImageUrl] = useState("");
+
+  // Convert BigInt timestamp to number
+  const timestamp = Number(post.timestamp) * 1000;
 
   // Fetch IPFS content if needed
   useEffect(() => {
@@ -45,19 +48,19 @@ export default function PostItem({ post }: any) {
     <div className="bg-zinc-900 rounded-lg p-4 border border-zinc-800">
       <div className="flex items-center gap-3 mb-4">
         <div className="size-10 rounded-full bg-zinc-800">
-          {profile?.[2] && (
+          {profile?.[3] && (
             <img 
-              src={`https://ipfs.io/ipfs/${profile[2]}`} 
+              src={`https://ipfs.io/ipfs/${profile[3]}`} 
               className="rounded-full"
             />
           )}
         </div>
         <div>
           <p className="font-medium text-zinc-100">
-            {profile?.[1] || post.author}
+            {profile?.[1] || post.owner.slice(0, 6)}
           </p>
           <p className="text-sm text-zinc-500">
-            {new Date(post.timestamp * 1000).toLocaleDateString()}
+            {new Date(timestamp).toLocaleDateString()}
           </p>
         </div>
       </div>
@@ -72,7 +75,7 @@ export default function PostItem({ post }: any) {
       
       <div className="flex gap-6 text-zinc-500">
         <button className="hover:text-blue-500 transition-colors">
-          Like ({post.likes})
+          Like ({Number(post.likesCount)})
         </button>
       </div>
     </div>

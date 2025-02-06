@@ -7,6 +7,7 @@ import { useState } from "react";
 
 import { contract } from "@/app/client";
 import ProfileForm from "@/components/ProfileForm";
+import PostFetcher from "@/components/PostFetcher";
 
 interface Profile {
   exists: boolean;
@@ -29,6 +30,12 @@ export default function ProfileView({ address }: ProfileViewProps) {
   const { data: profile, isLoading } = useReadContract({
     contract,
     method: "function profiles(address) view returns (string handle, string name, string bio, string avatar, uint256 followerCount, uint256 followingCount, bool exists)",
+    params: [address || account?.address || ""]
+  });
+
+  const { data: postIds } = useReadContract({
+    contract,
+    method: "function getPostsByUser(address) view returns (uint256[])",
     params: [address || account?.address || ""]
   });
 
@@ -83,6 +90,13 @@ export default function ProfileView({ address }: ProfileViewProps) {
           </div>
         </>
       )}
+
+      <div className="space-y-4">
+        <h3 className="text-lg font-semibold text-zinc-100">Posts</h3>
+        {postIds?.map(postId => (
+          <PostFetcher key={Number(postId)} postId={postId} />
+        ))}
+      </div>
     </div>
   );
 } 
