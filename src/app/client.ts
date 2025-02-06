@@ -16,5 +16,5 @@ export const client = createThirdwebClient({
 export const contract = getContract({
   client,
   chain: sepolia,
-  address: "0x67416527044EfCF119ddD01447c78dc854a8798B",
+  address: process.env.STATUS_CONTRACT_ADDRESS as string,
 });
