@@ -16,6 +16,7 @@ export default function PostFetcher({ postId }: { postId: bigint }) {
   return (
     <PostItem
       post={{
+        id: postId,
         owner: post[0],
         content: post[1],
         imageHash: post[2],

@@ -10,6 +10,7 @@ import ProfileForm from "@/components/ProfileForm";
 import PostFetcher from "@/components/PostFetcher";
 
 interface Profile {
+  userAddress: string;
   exists: boolean;
   name: string;
   handle: string;
@@ -29,7 +30,7 @@ export default function ProfileView({ address }: ProfileViewProps) {
 
   const { data: profile, isLoading } = useReadContract({
     contract,
-    method: "function profiles(address) view returns (string handle, string name, string bio, string avatar, uint256 followerCount, uint256 followingCount, bool exists)",
+    method: "function profiles(address) view returns (address userAddress, string handle, string name, string bio, string avatar, uint256 followerCount, uint256 followingCount, bool exists)",
     params: [address || account?.address || ""]
   });
 
@@ -41,26 +42,26 @@ export default function ProfileView({ address }: ProfileViewProps) {
 
   if (!address && !account) return null;
   if (isLoading) return <div>Loading profile...</div>;
-  if (!profile?.[6]) return <div>No profile found</div>;
+  if (!profile?.[7]) return <div>No profile found</div>;
 
   console.log(profile);
-  console.log(profile[4], " ", profile[5]);
+  console.log(profile[5], " ", profile[6]);
 
   return (
     <div className="bg-zinc-900 p-6 rounded-lg border border-zinc-800">
       <div className="flex items-center gap-4 mb-6">
         <div className="size-16 rounded-full overflow-hidden bg-zinc-800">
-          {profile[3] && (
+          {profile[4] && (
             <img
-              src={`https://ipfs.io/ipfs/${profile[3]}`}
+              src={`https://ipfs.io/ipfs/${profile[4]}`}
               alt="Profile avatar"
               className="object-cover size-full"
             />
           )}
         </div>
         <div className="flex-1">
-          <h2 className="text-xl font-bold text-zinc-100">{profile[1]}</h2>
-          <p className="text-zinc-400">@{profile[0]}</p>
+          <h2 className="text-xl font-bold text-zinc-100">{profile[2]}</h2>
+          <p className="text-zinc-400">@{profile[1]}</p>
         </div>
         <button
           onClick={() => setIsEditing(!isEditing)}
@@ -72,20 +73,20 @@ export default function ProfileView({ address }: ProfileViewProps) {
 
       {isEditing ? (
         <ProfileForm existingProfile={{
-          handle: profile[0],
-          name: profile[1],
-          bio: profile[2],
-          avatar: profile[3]
+          handle: profile[1],
+          name: profile[2],
+          bio: profile[3],
+          avatar: profile[4]
         }} />
       ) : (
         <>
-          <p className="text-zinc-300 mb-4">{profile[2]}</p>
+          <p className="text-zinc-300 mb-4">{profile[3]}</p>
           <div className="flex gap-6 text-zinc-400">
             <div>
-              <span className="font-medium">{Number(profile[4])}</span> Followers
+              <span className="font-medium">{Number(profile[5])}</span> Followers
             </div>
             <div>
-              <span className="font-medium">{Number(profile[5])}</span> Following
+              <span className="font-medium">{Number(profile[6])}</span> Following
             </div>
           </div>
         </>

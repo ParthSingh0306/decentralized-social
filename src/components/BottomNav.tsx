@@ -2,6 +2,7 @@
 
 import { useActiveAccount } from "thirdweb/react";
 import { useRouter } from "next/navigation";
+import { HomeIcon, UserIcon } from "@heroicons/react/24/outline";
 
 export default function BottomNav() {
   const account = useActiveAccount();
@@ -14,8 +15,17 @@ export default function BottomNav() {
           onClick={() => router.push("/")}
           className="text-zinc-300 hover:text-white transition-colors"
         >
-          Home
+          <HomeIcon className="h-6 w-6 mx-auto" />
         </button>
+        
+        <button
+          onClick={() => router.push("/explore")}
+          className="text-zinc-300 hover:text-white transition-colors"
+        >
+          {/* <GlobeIcon className="h-6 w-6 mx-auto" /> */}
+          <div>Explore</div>
+        </button>
+
         <button
           onClick={() => {
             if (account?.address) {
@@ -25,7 +35,7 @@ export default function BottomNav() {
           className="text-zinc-300 hover:text-white transition-colors"
           disabled={!account?.address}
         >
-          Profile
+          <UserIcon className="h-6 w-6 mx-auto" />
         </button>
       </div>
     </div>

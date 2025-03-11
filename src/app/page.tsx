@@ -10,11 +10,16 @@ import PostItem from "@/components/PostItem";
 export default function Home() {
   const account = useActiveAccount();
   
+  console.log("account: ", account?.address)
+  const acc_address = account?.address as string;
+
   const { data: profile } = useReadContract({
     contract,
-    method: "function profiles(address) view returns (string handle, string name, string bio, string avatar, uint256 followerCount, uint256 followingCount, bool exists)",
-    params: [account?.address ?? ""]
+    method: "function profiles(address) view returns (address userAddress, string handle, string name, string bio, string avatar, uint256 followerCount, uint256 followingCount, bool exists)",
+    params: [acc_address ?? ""]
   });
+
+  console.log("profile: ", profile)
 
   return (
     <main className="min-h-screen bg-zinc-950">
@@ -31,7 +36,7 @@ export default function Home() {
         </header>
 
         {account ? (
-          profile?.[6] ? (
+          profile?.[7] ? (
             <Feed />
           ) : (
             <ProfileForm />
@@ -63,11 +68,12 @@ function Feed() {
           <PostItem 
             key={index}
             post={{
+              id: BigInt(index + 1),
               owner: post.owner,
               content: post.content,
               imageHash: post.imageHash,
-              timestamp: post.timestamp,
-              likesCount: post.likesCount,
+              timestamp: Number(post.timestamp),
+              likesCount: Number(post.likesCount),
               exists: post.exists
             }}
           />
