@@ -32,6 +32,14 @@ export default function Sidebar() {
             <UserIcon className="h-6 w-6 mr-3" />
             {!isCollapsed && <span>Profile</span>}
           </button>
+
+          <button
+            onClick={() => router.push("/explore")}
+            className="text-zinc-300 hover:text-white transition-colors"
+          >
+            {/* <GlobeIcon className="h-6 w-6 mx-auto" /> */}
+            <div>Explore</div>
+          </button>
         </div>
 
         <button
