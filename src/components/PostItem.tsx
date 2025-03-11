@@ -28,6 +28,20 @@ interface Comment {
   timestamp: bigint;
 }
 
+function CommentAuthor({ address }: { address: string }) {
+  const { data: profile } = useReadContract({
+    contract,
+    method: "function profiles(address) view returns (address userAddress, string handle, string name, string bio, string avatar, uint256 followerCount, uint256 followingCount, bool exists)",
+    params: [address]
+  });
+
+  return (
+    <span className="font-medium text-zinc-300">
+      {profile?.[2] || `${address.slice(0, 6)}...${address.slice(-4)}`}
+    </span>
+  );
+}
+
 export default function PostItem({ post }: PostItemProps) {
   const { data: profile } = useReadContract({
     contract,
@@ -198,14 +212,12 @@ export default function PostItem({ post }: PostItemProps) {
         {comments.map((comment, index) => (
           <div key={index} className="bg-zinc-800 p-3 rounded-lg">
             <div className="flex items-center gap-2 text-sm">
-              <span className="font-medium text-zinc-300">
-                {comment.author?.slice(0, 6)}...{comment.author?.slice(-4)}
-              </span>
+              <CommentAuthor address={comment.author} />
               <span className="text-zinc-500 text-xs">
-                {new Date(Number(comment.timestamp || 0) * 1000).toLocaleDateString()}
+                {new Date(Number(comment.timestamp) * 1000).toLocaleDateString()}
               </span>
             </div>
-            <p className="text-zinc-100 text-sm mt-1">{comment.content || 'No content'}</p>
+            <p className="text-zinc-100 text-sm mt-1">{comment.content}</p>
           </div>
         ))}
         {loading && comments.length === 0 && (
