@@ -6,6 +6,7 @@ import { useState, useEffect } from "react";
 import { prepareContractCall } from "thirdweb";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { HeartIcon, ChatBubbleOvalLeftIcon } from "@heroicons/react/24/outline";
 
 interface PostType {
   id: bigint;
@@ -21,6 +22,12 @@ interface PostItemProps {
   post: PostType;
 }
 
+interface Comment {
+  author: string;
+  content: string;
+  timestamp: bigint;
+}
+
 export default function PostItem({ post }: PostItemProps) {
   const { data: profile } = useReadContract({
     contract,
@@ -33,6 +40,13 @@ export default function PostItem({ post }: PostItemProps) {
 
   const [content, setContent] = useState(post.content);
   const [imageUrl, setImageUrl] = useState("");
+  const account = useActiveAccount();
+  const { mutate: sendLike, isPending: isLiking } = useSendTransaction();
+  const { mutate: sendComment, isPending: isCommenting } = useSendTransaction();
+  const [commentContent, setCommentContent] = useState("");
+  const [showComments, setShowComments] = useState(false);
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [loading, setLoading] = useState(true);
 
   // Convert BigInt timestamp to number
   const timestamp = Number(post.timestamp) * 1000;
@@ -62,21 +76,49 @@ export default function PostItem({ post }: PostItemProps) {
     fetchContent();
   }, [post.imageHash, post.content]);
 
-  const { mutate: sendTransaction } = useSendTransaction();
-  const account = useActiveAccount();
   const router = useRouter();
 
-  const handleLike = async () => {
+  const handleLike = () => {
     if (!account) return;
     
     const transaction = prepareContractCall({
       contract,
-      method: "function likePost(uint256)",
+      method: "function likePost(uint256 _postId)",
       params: [post.id]
     });
-
-    await sendTransaction(transaction);
+    
+    sendLike(transaction);
   };
+
+  const handleComment = () => {
+    if (!account || !commentContent.trim()) return;
+    
+    const transaction = prepareContractCall({
+      contract,
+      method: "function addComment(uint256 _postId, string _content)",
+      params: [post.id, commentContent.trim()]
+    });
+    
+    sendComment(transaction);
+    setCommentContent("");
+  };
+
+  const { data: commentData } = useReadContract({
+    contract,
+    method: "function postComments(uint256, uint256) view returns (address author, string content, uint256 timestamp)",
+    params: [post.id, BigInt(comments.length)] // Get next comment
+  });
+
+  useEffect(() => {
+    if (commentData) {
+      setComments(prev => [...prev, {
+        author: commentData[0] || '0x0000000000000000000000000000000000000000', // Fallback address
+        content: commentData[1] || '', // Fallback content
+        timestamp: commentData[2] || BigInt(0) // Fallback timestamp
+      }]);
+      setLoading(false);
+    }
+  }, [commentData]);
 
   return (
     <div 
@@ -87,7 +129,7 @@ export default function PostItem({ post }: PostItemProps) {
         <div className="size-10 rounded-full bg-zinc-800">
           {profile?.[4] && (
             <img 
-              src={`https://ipfs.io/ipfs/${profile[3]}`} 
+              src={`https://ipfs.io/ipfs/${profile[4]}`} 
               className="rounded-full"
             />
           )}
@@ -110,19 +152,65 @@ export default function PostItem({ post }: PostItemProps) {
         />
       )}
       
-      <div className="flex gap-6 text-zinc-500" onClick={(e) => e.stopPropagation()}>
+      <div className="flex gap-6 items-center text-zinc-500" onClick={(e) => e.stopPropagation()}>
         <button 
           onClick={handleLike}
-          className={`hover:text-blue-500 transition-colors ${post.likesCount > 0 ? 'text-blue-500' : 'text-zinc-500'}`}
+          disabled={isLiking}
+          className={`flex items-center gap-1 hover:text-blue-500 transition-colors ${
+            post.likesCount > 0 ? 'text-blue-500' : 'text-zinc-500'
+          }`}
         >
-          {post.likesCount > 0 ? 'Liked' : 'Like'} ({Number(post.likesCount)})
+          <HeartIcon className="h-5 w-5" />
+          {isLiking ? 'Liking...' : Number(post.likesCount)}
         </button>
+
         <button
-          onClick={() => router.push(`/post/${post.id}`)}
-          className="hover:text-blue-500 transition-colors"
+          onClick={() => setShowComments(!showComments)}
+          className="hover:text-blue-500 transition-colors flex items-center gap-1"
         >
+          <ChatBubbleOvalLeftIcon className="h-5 w-5" />
           Comment
         </button>
+      </div>
+
+      {showComments && (
+        <div className="mt-4 space-y-2">
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={commentContent}
+              onChange={(e) => setCommentContent(e.target.value)}
+              placeholder="Write a comment..."
+              className="bg-zinc-800 text-zinc-100 px-3 py-2 rounded-lg flex-1 text-sm"
+            />
+            <button
+              onClick={handleComment}
+              disabled={isCommenting || !commentContent.trim()}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm transition-colors disabled:opacity-50"
+            >
+              {isCommenting ? 'Posting...' : 'Post'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div className="mt-2 space-y-2">
+        {comments.map((comment, index) => (
+          <div key={index} className="bg-zinc-800 p-3 rounded-lg">
+            <div className="flex items-center gap-2 text-sm">
+              <span className="font-medium text-zinc-300">
+                {comment.author?.slice(0, 6)}...{comment.author?.slice(-4)}
+              </span>
+              <span className="text-zinc-500 text-xs">
+                {new Date(Number(comment.timestamp || 0) * 1000).toLocaleDateString()}
+              </span>
+            </div>
+            <p className="text-zinc-100 text-sm mt-1">{comment.content || 'No content'}</p>
+          </div>
+        ))}
+        {loading && comments.length === 0 && (
+          <p className="text-zinc-400 text-sm">No comments yet</p>
+        )}
       </div>
     </div>
   );

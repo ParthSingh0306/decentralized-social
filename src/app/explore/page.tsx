@@ -17,31 +17,12 @@ interface Profile {
 }
 
 export default function ExplorePage() {
-  const { data: profiles, isLoading } = useReadContract({
+  const account = useActiveAccount();
+  const { data: profiles } = useReadContract({
     contract,
     method: "function showAllProfiles() view returns ((address userAddress, string handle, string name, string bio, string avatar, uint256 followerCount, uint256 followingCount, bool exists)[])",
     params: [],
   });
-
-  const account = useActiveAccount();
-  const router = useRouter();
-
-  if (!account) {
-    return (
-      <div className="max-w-6xl mx-auto p-4 text-center">
-        <h1 className="text-2xl font-bold text-zinc-100 mb-4">Explore Profiles</h1>
-        <p className="text-zinc-400 mb-4">
-          Connect your wallet to view and follow profiles
-        </p>
-        <button
-          onClick={() => router.push("/")}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
-        >
-          Connect Wallet
-        </button>
-      </div>
-    );
-  }
 
   console.log(profiles)
 
@@ -50,65 +31,48 @@ export default function ExplorePage() {
       <h1 className="text-2xl font-bold text-zinc-100 mb-6">Explore Profiles</h1>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {(profiles as any[])
-          ?.filter(p => p.exists && p.owner !== account?.address)
-          ?.map((profile, index) => {
-            // Add null checks and safe conversions
-            const ownerAddress = profile.owner?.toString() || '';
-            const userAddress = profile.userAddress;
-            const followerCount = Number(profile.followerCount) || 0;
-            
-            return (
-              <ProfileCard 
-                key={index}
-                profile={{
-                    userAddress,
-                  owner: ownerAddress,
-                  handle: profile.handle || '',
-                  name: profile.name || 'Unnamed Profile',
-                  avatar: profile.avatar || '',
-                  followerCount: followerCount,
-                  exists: profile.exists
-                }}
-              />
-            );
-          })}
+          ?.filter(p => p.exists && p.userAddress !== account?.address)
+          ?.map((profile, index) => (
+            <ProfileCard
+              key={index}
+              profile={{
+                userAddress: profile.userAddress,
+                owner: profile.owner,
+                handle: profile.handle,
+                name: profile.name,
+                avatar: profile.avatar,
+                followerCount: Number(profile.followerCount),
+                exists: profile.exists
+              }}
+            />
+          ))}
       </div>
     </div>
   );
 }
 
 function ProfileCard({ profile }: { profile: Profile }) {
-  const { mutateAsync: sendTransaction, isPending, isSuccess } = useSendTransaction();
   const account = useActiveAccount();
+  const { data: isFollowing, refetch } = useReadContract({
+    contract,
+    method: "function isFollowing(address _user, address _toCheck) view returns (bool)",
+    params: [account?.address ?? "", profile?.userAddress]
+  });
+
+  const { mutateAsync: sendTransaction, isPending } = useSendTransaction();
 
   const handleFollow = async () => {
-    console.log("Follow button clicked");
-    if (!account) {
-      console.log("No account connected");
-      return;
-    }
-
-    console.log("profile owner: ", profile?.userAddress)
-
-    if (!profile.userAddress || typeof profile.userAddress !== "string") {
-      console.error("Invalid profile owner address:", profile.userAddress);
-      return;
-    }
-
-    console.log("Attempting to follow:", profile.userAddress);
-    
     try {
       const transaction = prepareContractCall({
         contract,
-        method: "function follow(address _toFollow)",
-        params: [profile.userAddress.toLowerCase()]
+        method: `function ${isFollowing ? "unfollow" : "follow"}(address _toFollow)`,
+        params: [profile.userAddress]
       });
       
-      const result = await sendTransaction(transaction);
-      console.log("Transaction successful:", result.transactionHash);
+      await sendTransaction(transaction);
+      refetch(); // Refresh the following status
     } catch (error) {
-      console.error("Follow transaction failed:", error);
-      alert(`Follow failed: ${(error as Error).message}`);
+      console.error("Transaction failed:", error);
     }
   };
 
@@ -137,15 +101,12 @@ function ProfileCard({ profile }: { profile: Profile }) {
         </span>
         <button
           onClick={handleFollow}
-          disabled={isPending || isSuccess}
+          disabled={isPending}
           className={`${
-            isSuccess ? "bg-green-600 hover:bg-green-700" : 
-            "bg-blue-600 hover:bg-blue-700"
+            isFollowing ? "bg-red-600 hover:bg-red-700" : "bg-blue-600 hover:bg-blue-700"
           } text-white px-3 py-1 rounded-md text-sm transition-colors disabled:opacity-50`}
         >
-          {isPending ? "Following..." : 
-           isSuccess ? "Following ✓" : 
-           "Follow"}
+          {isPending ? "Processing..." : isFollowing ? "Unfollow" : "Follow"}
         </button>
       </div>
     </div>
