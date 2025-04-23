@@ -7,6 +7,7 @@ import { prepareContractCall } from "thirdweb";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { HeartIcon, ChatBubbleOvalLeftIcon } from "@heroicons/react/24/outline";
+import ReportButton from "@/components/ReportButton";
 
 interface PostType {
   id: bigint;
@@ -62,35 +63,21 @@ export default function PostItem({ post }: PostItemProps) {
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Convert BigInt timestamp to number
-  const timestamp = Number(post.timestamp) * 1000;
-
-  // Fetch IPFS content if needed
-  useEffect(() => {
-    const fetchContent = async () => {
-      if (post.imageHash) {
-        try {
-          const response = await fetch(`https://ipfs.io/ipfs/${post.imageHash}`);
-          setImageUrl(response.url);
-        } catch (error) {
-          console.error("Error loading IPFS image:", error);
-        }
-      }
-      if (post.content.startsWith("ipfs://")) {
-        try {
-          const contentHash = post.content.split("ipfs://")[1];
-          const response = await fetch(`https://ipfs.io/ipfs/${contentHash}`);
-          setContent(await response.text());
-        } catch (error) {
-          console.error("Error loading IPFS content:", error);
-        }
-      }
-    };
-    
-    fetchContent();
-  }, [post.imageHash, post.content]);
-
   const router = useRouter();
+
+  const { data: postDetails } = useReadContract({
+    contract,
+    method: "function getPostDetails(uint256) view returns (address owner, string content, string imageHash, uint256 timestamp, uint256 likesCount, bool exists)",
+    params: [post.id]
+  });
+
+  // Update the post data when details are fetched
+  useEffect(() => {
+    if (postDetails) {
+      setContent(postDetails[1] || "");
+      setImageUrl(postDetails[2] ? `https://ipfs.io/ipfs/${postDetails[2]}` : "");
+    }
+  }, [postDetails]);
 
   const handleLike = () => {
     if (!account) return;
@@ -150,10 +137,10 @@ export default function PostItem({ post }: PostItemProps) {
         </div>
         <div>
           <p className="font-medium text-zinc-100">
-            {profile?.[2] || post.owner.slice(0, 6)}
+            {profile?.[2] || postDetails?.[0]?.slice(0, 6) || "Unknown"}
           </p>
           <p className="text-sm text-zinc-500">
-            {new Date(timestamp).toLocaleDateString()}
+            {postDetails?.[3] ? new Date(Number(postDetails[3]) * 1000).toLocaleDateString() : "Unknown date"}
           </p>
         </div>
       </div>
@@ -171,11 +158,11 @@ export default function PostItem({ post }: PostItemProps) {
           onClick={handleLike}
           disabled={isLiking}
           className={`flex items-center gap-1 hover:text-blue-500 transition-colors ${
-            post.likesCount > 0 ? 'text-blue-500' : 'text-zinc-500'
+            (postDetails?.[4] || 0) > 0 ? 'text-blue-500' : 'text-zinc-500'
           }`}
         >
           <HeartIcon className="h-5 w-5" />
-          {isLiking ? 'Liking...' : Number(post.likesCount)}
+          {isLiking ? 'Liking...' : Number(postDetails?.[4] || 0)}
         </button>
 
         <button
@@ -185,6 +172,8 @@ export default function PostItem({ post }: PostItemProps) {
           <ChatBubbleOvalLeftIcon className="h-5 w-5" />
           Comment
         </button>
+
+        <ReportButton postId={post.id} />
       </div>
 
       {showComments && (
