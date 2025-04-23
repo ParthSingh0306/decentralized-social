@@ -3,7 +3,7 @@
 import { useActiveAccount } from "thirdweb/react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { HomeIcon, UserIcon, ArrowsPointingOutIcon } from "@heroicons/react/24/outline";
+import { HomeIcon, UserIcon, ArrowsPointingOutIcon, FlagIcon } from "@heroicons/react/24/outline";
 
 export default function Sidebar() {
   const router = useRouter();
@@ -35,10 +35,18 @@ export default function Sidebar() {
 
           <button
             onClick={() => router.push("/explore")}
-            className="text-zinc-300 hover:text-white transition-colors"
+            className="flex items-center w-full p-3 text-zinc-300 hover:bg-zinc-800 rounded-lg transition-colors group"
           >
-            {/* <GlobeIcon className="h-6 w-6 mx-auto" /> */}
-            <div>Explore</div>
+            <ArrowsPointingOutIcon className="h-6 w-6 mr-3" />
+            {!isCollapsed && <span>Explore</span>}
+          </button>
+
+          <button
+            onClick={() => router.push("/reported")}
+            className="flex items-center w-full p-3 text-zinc-300 hover:bg-zinc-800 rounded-lg transition-colors group"
+          >
+            <FlagIcon className="h-6 w-6 mr-3" />
+            {!isCollapsed && <span>Reported Posts</span>}
           </button>
         </div>
 
